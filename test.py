@@ -47,7 +47,6 @@ class DatamineThread(threading.Thread):
             soup = BeautifulSoup(html,from_encoding=charest['encoding'])
             #print soup.findAll(['title'])
             #signals to queue job is done
-	   
             self.out_queue.task_done()
 start = time.time()
 def main():
