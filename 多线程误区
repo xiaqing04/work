@@ -1,0 +1,268 @@
+#!/usr/local/bin/python2.7
+#coding: utf-8
+import urllib2
+import random
+import hashlib
+import cookielib
+import os
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
+import urllib
+import datetime
+import os.path
+import math
+import re
+import time
+import socket
+import codecs
+from pyquery import PyQuery as pq
+from lxml import etree
+import json
+import string,cgi,time
+from os import curdir,sep
+from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
+import threading
+import time
+HREF_S=set()
+
+lock = threading.Lock()
+num = 0
+starttime = time.time()
+
+class AnalyzeWeb(threading.Thread):  
+    """Read File and Grasp url put the contents into the queue."""
+
+    def __init__(self,l):   
+        threading.Thread.__init__(self)
+        self.l = l
+    def run(self):
+	global num
+	global starttime
+        while num < (len(self.l) ) :
+                lock.acquire()
+	   	boss_d = pq(self.l[num])
+		num = num + 1
+	#	print "num :" , num
+		lock.release()
+		if num > 500:
+			print (time.time() - starttime)
+			break
+		
+
+		sm_lis = boss_d('.img_single_box')   #There is to find all <p> that satify .img_single_box
+
+		print self.getName()
+		for i in range(10):
+			for k in sm_lis:
+				project_sm = pq(k).text()
+				print project_sm.encode('utf-8')
+				sm = pq(k).find('a')
+				link = pq(sm).attr('href')
+				print link 
+				jj = pq(k).find('img')
+				src = pq(jj).attr('src')
+				print src
+				print "-----------------------"
+class QQ:
+	def __init__(self):
+		'''
+		'''
+	def send(self, url, ref=None):
+		req = urllib2.Request(url)
+		req.add_header('User-Agent', 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; .NET4.0C)');
+		#req.add_header('Accept-Encoding', 'gzip, deflate')
+		#req.add_header('Accept-Language', 'zh-CN')
+		req.add_header('Accept', '*/*')
+		if ref != None:
+			req.add_header("Referer", ref)
+		try:
+			response = urllib2.urlopen(req, timeout=20)
+			s = response.read()
+		except HTTPError, e:
+			print('Error code: ', e.code)
+			s = None
+		except URLError, e:
+			print('We failed to reach a server.')
+			print('Reason: ', e.reason)
+			s = None
+		except:
+			print 'get response error'
+			s = None
+		finally:
+			return s
+	
+	def http(self, url, para=None, ref=None):  # all other application have used thif fun.
+		if para!=None:
+			if url.find('?')!=-1:
+				url = url + '&' + para
+			else:
+				url = url + '?' + para
+		
+		for i in range(3):
+			try:
+				retry = 0
+				while True:
+					if retry >= 6:
+						print 'retry 6 s,get no response'
+						break
+					result = self.send(url, ref) # and this have no  using urlopen()
+
+					if result == None:
+						retry += 1
+					else:
+						return result
+				break
+			except:
+				pass
+
+	def getUrl1(self,d,url):              # for what!!!
+		lis=d('.eco-list li')      # find the eco-list and li is in eco-list.
+		print len(lis)
+		for li in lis:
+			msg = pq(li)('.txt').find('a')
+			if msg==None:
+				continue
+			href=msg.attr('href')
+			try:
+				HREF_S.add(href)
+				file_object = codecs.open("url2.txt", "a+","utf-8")
+				file_object.write(href+"\n")
+				file_object.close()
+			except:
+				continue
+		for i in range(1,15):
+			l=url+'_'+str(i)+'.shtml'
+			print l
+			data1 = self.http(l)
+			if data1==None:
+				continue
+			d1 = pq(data1)
+			lis=d1('.eco-list li')
+			print len(lis)
+			if lis==None:
+				continue
+			for li in lis:
+				msg = pq(li)('.txt').find('a')
+				if msg==None:
+					continue
+				href=msg.attr('href')
+				try:
+					HREF_S.add(href)
+					file_object = codecs.open("url2.txt", "a+","utf-8")
+					file_object.write(href+"\n")
+					file_object.close()
+				except:
+					continue
+
+	def getBoss(self,boss_id ):  # input the boss ,and get the project of the boss.
+		boss_url = 'http://www.36kr.net/' + str(boss_id)  # boss_id ie. boss_name
+		boss_info = self.http(boss_url)    #/get url html
+		boss_d = pq(boss_info)
+		sm_lis = boss_d('.media')  #()all the contents are class ob.
+		sm_lis_ids = []
+		for k in sm_lis:
+			project_sm = pq(k)('.card').text()# this is same to bs4
+			print project_sm.encode('utf-8')
+			sm = pq(k)('.identifying').find('img')
+			project_sm_id = pq(sm).attr('src')
+			print project_sm_id
+			
+			sm_lis_ids.append(project_sm_id)
+
+		#If not exist , leave it alone.
+		lg_lis_ids = []
+		lg_lis = boss_d('.person-media-lg .media')
+		for h in lg_lis:
+			lg1 = pq(h)('.card').find('h3')
+			project_lg = pq(lg1).attr('title')
+			lg2 = pq(h)('.card').find('a')
+			project_lg_id = pq(lg2).attr('href')
+			lg_lis_ids.append(project_lg_id)
+
+		print "********"
+
+		sm_list = ','.join(sm_lis_ids)
+		lg_list = ','.join(lg_lis_ids)
+		if sm_list == None:
+			sm_list = ''
+		if lg_list == None:
+			lg_list = ''
+	#	file_object.write(boss_id+"\t"+boss_url+"\t"+boss_name+"\t"+company+"\t"+status+"\t"+lg_list+"\t"+sm_list+"\t"+todayf+"\r\n")
+
+	def getbosslist(self,num):  # input the boss ,and get the project of the boss.
+		boss_url = 'http://www.36kr.net/person?status=investor&page=' + str(num) 
+		print boss_url
+		boss_info = self.http(boss_url)   
+		boss_d = pq(boss_info)
+		sm_lis = boss_d('.investor-info')  
+		sm_lis_ids = []
+		for k in sm_lis:
+			sm = pq(k).find('a')
+			project_sm = pq(sm).text()
+			print project_sm.encode('utf-8')
+			project_sm_id = pq(sm).attr('href')
+			print project_sm_id
+			jj = pq(k).find('p')
+			print pq(jj).text().encode('utf-8')
+			sm_lis_ids.append(project_sm_id)
+			self.getBoss(project_sm_id)
+			print "-----------------------"
+		print "That is all !"
+'''
+ RunThread(self,l):  # input the boss ,and get the project of the boss.
+		
+		boss_d = pq(boss_info)
+		sm_lis = boss_d('.img_single_box')   #There is to find all <p> that satify .img_single_box
+		for k in sm_lis:
+			project_sm = pq(k).text()
+			print project_sm.encode('utf-8')
+			sm = pq(k).find('a')
+			link = pq(sm).attr('href')
+			print link 
+			jj = pq(k).find('img')
+			src = pq(jj).attr('src')
+			print src
+			print "-----------------------"
+		print "That is all !"
+'''
+	
+
+if __name__ == '__main__':
+#	global starttime
+	qq = QQ();
+	today = datetime.datetime.now()
+	todayf=today.strftime('%Y-%m-%d')
+	today_ts=today.strftime('%Y%m%d')
+	targetFile="./temp.txt"
+	if os.path.exists(targetFile):
+		os.remove(targetFile)
+	file_object = codecs.open(targetFile, "a+","utf-8")
+#	s = "lizhuyan"
+#	qq.getbosslist(1)
+	l = []
+	i = 1
+	url = 'http://image.baidu.com/'
+	while True:
+		if i  == 520:
+			break
+		else:
+			l1 = qq.http(url)
+			l.append(l1)
+			#print i
+			i = i + 1
+	starttime= time.time()
+	print "len(l) is ,",len(l)
+    	for i in range(4):
+        	t = AnalyzeWeb(l)  
+	    	t.setDaemon(True)
+            	t.start()
+		print i 
+	print  "All the threads start already!"
+	while True: 
+		try:
+	    		time.sleep(1)
+	    # let the main thread get catch ctrl+c. 
+		except KeyboardInterrupt:
+	    		break
+	file_object.close()
