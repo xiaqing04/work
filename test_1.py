@@ -80,7 +80,11 @@ def main():
     time.sleep(5)
     print "current has %d threads " % (threading.activeCount() -1 )
 
+<<<<<<< HEAD
     #wait on the queue until everything has been processed
+=======
+    #wait on the queue until everything has been processed
+>>>>>>> ec5a9b7c00ecd2f0842f468196ccece0ae6b11be
     print "Before queue has join is %s"  % (time.time() - start)
     queue.join()  
     print "After queue has join is %s " % (time.time()-start)
